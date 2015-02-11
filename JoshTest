@@ -1,0 +1,61 @@
+#Code Start:
+dataframe <-read.delim("C:/Users/jlh91_000/Desktop/sel_top_10k_tab_del.txt", header=TRUE)
+
+
+#extracts the query column from the dataset. I added tolower to make it easier to match strings
+query<-as.character(tolower(dataframe$query))
+
+#declare the vectors to separate the queries
+simpleSelectQueries = vector()
+complexQueries = vector()
+simpleDeleteQueries = vector()
+simpleUpdateQueries = vector()
+
+#iterate through them
+for (i in 1:length(query))
+{
+  #This only looks for simple select statements! More logic to add in Update and Delete types.
+  
+  #if only 1 occurrence of each select, from, and where
+  if(length(grep("select",query[i]))==1 && length(grep("from",query[i]))==1 && length(grep("where",query[i]))==1)
+  {
+    #add to the simple queries vector
+    simpleSelectQueries <- append(simpleSelectQueries,query[i])
+  }
+  if(length(grep("delete",query[i]))==1 && length(grep("from",query[i]))==1 && length(grep("where",query[i]))==1)
+  {
+    #add to the simple Delete queries vector
+    simpleDeleteQueries <- append(simpleDeleteQueries,query[i])
+  }
+  
+  #This method of separating out update statements doesnt work because there are select status with update withen, suggestions needed
+#  if(length(grep("update",query[i]))==1 && length(grep("from",query[i]))==1 && length(grep("where",query[i]))==1)
+#  {
+    #add to the simple queries vector
+#    simpleUpdateQueries <- append(simpleUpdateQueries,query[i])
+#  }
+  else
+  {
+    #add everything else to another vector, this will take more analysis and further breakdown
+    complexQueries <- append(complexQueries,query[i])
+  }
+}
+
+
+#Splits queries on the From clause
+#I tried to split into three part matrix at the from and where, but I could not get that working.
+simpleSelectQueriesSplit<-strsplit(simpleSelectQueries, "(from)")
+
+
+
+#Create a vector of size equal to the length of the simpleSelectQueriesSplit size using sequence of 
+#number starting from 1 to the number of elements in simpleSelectQueriesSplit
+simpleSelectQueriesSplitVector<-1:length(simpleSelectQueriesSplit)
+
+#Starting on first query in character "matrix" "simpleSelectQueriesSplit, move the left part of the split
+#into a new character vector
+for (i in 1:length(simpleSelectQueriesSplit))
+{
+  simpleSelectQueriesSplitVector[i]<-simpleSelectQueriesSplit[[i]][1]
+  
+}
