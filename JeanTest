@@ -1,0 +1,35 @@
+#import the data
+
+dataframe <- read.delim(file.choose(), header=T, sep=",")
+
+#verify the data was well imported
+head(dataframe)
+names(dataframe)
+
+#attach the data
+attach(dataframe)
+
+#by using the duplicated command, r will treat every row of the Query column as a value.
+# It will return FALSE for the first occurrence and TRUE for every following occurrence of that value
+
+duplicated(Query)
+
+#remove duplicated queries and group or store the unique queries in the variable uniqueQueries
+#There is a total of 1854 queries leaving a total of 8146 similar queries
+
+UniqueQueries<- dataframe[ ! duplicated( dataframe[c("Query")]),]
+
+#use the summary command to get a summary of the UniqueQueries.
+summary(UniqueQueries)
+
+#Another way to find the unique queries and group them is to create a vector with all the queries and look for unique values in it.
+#create a vector with all the queries
+Queriesvector = vector()
+
+#We use a for loop to store the queries in the new vector
+for (i in 1:length(Query)){
+  Queriesvector <- append(Queriesvector,Query[i])
+}
+
+#We use the unique command to identify the unique queries and we store them in the variable OneQueries
+OneQueries <- unique(uniquevector)
