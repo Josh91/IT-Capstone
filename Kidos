@@ -1,0 +1,109 @@
+library(RODBC)
+
+//create connection string to access database
+//I took the passwords out, and txn is a data source he defines in administrative tools
+channel <- odbcConnect("txn", uid="", pwd="", believeNRows=FALSE) 
+
+//get data in  a R DataFrame where duration of query is greater than 1000
+dataframe <- sqlQuery(channel, "select * from dbo.Txnlogs_2014_w15 where duration > 1000 order by dts")
+
+//put the query column of the table in a character vector (see R data types)
+queryCharacter<-as.character(dataframe$query)
+
+//remove variables from Queries
+queryCharacterClean<-gsub("'[-a-zA-Z0-9 &/:_\\.]+'|[0-9\\.,]+|(IN )\\([-a-zA-Z0-9 ,/:_\\.]+\\)|(NULL)|(TRUE)|(FALSE)", "",queryCharacter)
+
+//split Queries on the "Where" Clause, resulting in a 2 dimensional matrix
+queryCharacterCleanPlus<-strsplit(queryCharacterClean, "(WHERE)")
+
+//create a vector of size equal to queryCharacterCleanPlus size using sequence of number starting from 1 to the number of element in  queryCharacterCleanPlus
+queryCharacterCleanPlusVector<-1:length(queryCharacterCleanPlus)
+
+//starting on first query in character "Matrix" "queryCharacterCleanPlus", move the left part of the split query into a new character vector
+for (i in 1:length(queryCharacterCleanPlus))
+{
+  queryCharacterCleanPlusVector[i]<-queryCharacterCleanPlus[[i]][1]
+  
+}
+
+//turn newly created vector into factor
+queryCharacterCleanFactor<-as.factor(queryCharacterCleanPlusVector)
+
+//attach the new factor as a new column to databr
+dataFrame<-cbind(dataframe, queryCharacterCleanFactor)
+
+//saves each factor and its frequency
+queryFreq<-summary(queryCharacterCleanFactor)
+
+//create a new dataframe  replacing query column with queryCharacterCleanFactor
+dataFrame1 <-subset(dataFrame, select = c(dts,duration,accountcode,usercode,brokerip,databaseip,databasename,queryCharacterCleanFactor))
+
+//discard original dataframe
+rm(dataFrame)
+
+//Group the new dataframe by unique queryCharacterCleanFactor
+queryDataframes<-split(dtframe1,dtframe1$queryCharacterCleanFactor)
+
+//create a vector of size equal to queryDataframes
+queryCount <- 1:length(queryDataframes)
+
+//count the elements in each group and add the count as a new variable for the data frame
+for (i in 1:length(queryDataframes))
+{
+  queryDataframes[[i]]<-c(queryDataframes[[i]],count=length(queryDataframes[[i]]$dts))
+}
+
+//put the count column into a vector
+for (i in 1:length(queryDataframes))
+{
+  queryCount[i] <- queryDataframes[[i]]$count
+}
+
+//create an ordered number list of equal size
+index <- 1:length(queryCount)
+
+//bind the new list with the list of counts
+countIndexData<-cbind(index,queryCount)
+
+//order the new matrix on the countcolumn in decreasing order
+orderedIndex<-order(countIndexData[,2], decreasing=TRUE)
+
+//create an ordered number list of equal size with queryDataframes
+//dataBaseQueryDataframes<-1:length(queryDataframes)
+
+
+//set graph utility to interactive
+par(ask=TRUE)
+
+//Create a lis with "1" as only value
+databaseQueryList <- list(1)
+
+
+//plot durations for each unique query, for each database
+//use the 100 first characters in the query test as the plot title
+//plot statistical summary values for durations
+par(ask=TRUE)
+
+databaseQueryList <- list(1)
+
+for (i in orderedIndex)
+{	temp <- as.data.frame(queryDataframes[[i]])
+  temp <-subset(temp, select=-count)
+  databaseQueryListTemp<-split(temp,temp$databasename, drop = TRUE)
+  databaseQueryList<-c(databaseQueryListTemp,databaseQueryList) 
+  for (j in 1:length(databaseQueryListTemp))
+  {
+    summaryData<-summary(databaseQueryListTemp[[j]]$duration)
+    standardDev <-sd(databaseQueryListTemp[[j]]$duration)
+    legendText <- sprintf("Min:%d Max:%d 1st Qu:%d 3rd QU:%d Median:%d Mean:%d \n No Points: %d Percent Total %f sd : %f", summaryData[1], 
+                          summaryData[6], summaryData[2],  summaryData[5], summaryData[3], summaryData[4], length(databaseQueryListTemp[[j]]$duration), (length(databaseQueryListTemp[[j]]$duration)/length(temp$duration))*100, standardDev )
+    plotTitle <-as.character(temp$queryCharacterCleanFactor[1])
+    if (nchar(plotTitle) > 100)
+    {
+      plotTitle <- substr(plotTitle, 1, 100)
+    }
+    plot(databaseQueryListTemp[[j]]$duration, main = plotTitle, xlab=databaseQueryListTemp[[j]]$databasename[1], ylab=i, sub=length(temp$duration))
+    legend("topright", legendText, inset=.05, title="Summary",  horiz=TRUE)
+  }
+}
+par(ask=FALSE)
